@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Отслеживание грузов</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    .status-awaiting { background-color: #ffeb3b; }
+    .status-in-transit { background-color: #2196f3; color: white; }
+    .status-delivered { background-color: #4caf50; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container my-5">
+    <h1 class="mb-4">Отслеживание грузов</h1>
+    
+    <!-- Фильтр -->
+    <div class="mb-3">
+      <label for="statusFilter" class="form-label">Фильтр по статусу</label>
+      <select id="statusFilter" class="form-select">
+        <option value="">Все</option>
+        <option value="Ожидает отправки">Ожидает отправки</option>
+        <option value="В пути">В пути</option>
+        <option value="Доставлен">Доставлен</option>
+      </select>
+    </div>
+
+    <!-- Таблица -->
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Номер груза</th>
+          <th>Название груза</th>
+          <th>Статус</th>
+          <th>Пункт отправления</th>
+          <th>Пункт назначения</th>
+          <th>Дата отправления</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody id="cargoTableBody">
+        <!-- Динамически добавляемые строки -->
+      </tbody>
+    </table>
+
+    <!-- Форма добавления -->
+    <h2 class="mt-5">Добавить новый груз</h2>
+    <form id="addCargoForm" class="row g-3">
+      <div class="col-md-6">
+        <label for="cargoName" class="form-label">Название груза</label>
+        <input type="text" id="cargoName" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label for="cargoOrigin" class="form-label">Пункт отправления</label>
+        <select id="cargoOrigin" class="form-select" required>
+          <option value="">Выберите город</option>
+          <option value="Москва">Москва</option>
+          <option value="Санкт-Петербург">Санкт-Петербург</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label for="cargoDestination" class="form-label">Пункт назначения</label>
+        <select id="cargoDestination" class="form-select" required>
+          <option value="">Выберите город</option>
+          <option value="Казань">Казань</option>
+          <option value="Екатеринбург">Екатеринбург</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label for="departureDate" class="form-label">Дата отправления</label>
+        <input type="date" id="departureDate" class="form-control" required>
+      </div>
+      <div class="col-md-12">
+        <button type="submit" class="btn btn-primary">Добавить груз</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const cargoList = [
+      {
+        id: "CARGO001",
+        name: "Строительные материалы",
+        status: "В пути",
+        origin: "Москва",
+        destination: "Казань",
+        departureDate: "2024-11-24"
+      },
+      {
+        id: "CARGO002",
+        name: "Хрупкий груз",
+        status: "Ожидает отправки",
+        origin: "Санкт-Петербург",
+        destination: "Екатеринбург",
+        departureDate: "2024-11-26"
+      }
+    ];
+
+    const statuses = ["Ожидает отправки", "В пути", "Доставлен"];
+    const tableBody = document.getElementById("cargoTableBody");
+    const statusFilter = document.getElementById("statusFilter");
+    const addCargoForm = document.getElementById("addCargoForm");
+
+    // Функция для отображения грузов
+    function renderCargoList(filterStatus = "") {
+      tableBody.innerHTML = "";
+      cargoList
+        .filter(cargo => !filterStatus || cargo.status === filterStatus)
+        .forEach(cargo => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${cargo.id}</td>
+            <td>${cargo.name}</td>
+            <td class="${getStatusClass(cargo.status)}">${cargo.status}</td>
+            <td>${cargo.origin}</td>
+            <td>${cargo.destination}</td>
+            <td>${cargo.departureDate}</td>
+            <td>
+              <select class="form-select" onchange="updateStatus('${cargo.id}', this.value)">
+                ${statuses.map(status => `<option value="${status}" ${cargo.status === status ? "selected" : ""}>${status}</option>`).join("")}
+              </select>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+    }
+
+    // Функция получения класса для статуса
+    function getStatusClass(status) {
+      if (status === "Ожидает отправки") return "status-awaiting";
+      if (status === "В пути") return "status-in-transit";
+      if (status === "Доставлен") return "status-delivered";
+      return "";
+    }
+
+    // Обновление статуса
+    function updateStatus(id, newStatus) {
+      const cargo = cargoList.find(c => c.id === id);
+      if (newStatus === "Доставлен" && new Date(cargo.departureDate) > new Date()) {
+        alert("Нельзя установить статус 'Доставлен' до даты отправления.");
+        renderCargoList(statusFilter.value);
+        return;
+      }
+      cargo.status = newStatus;
+      renderCargoList(statusFilter.value);
+    }
+
+    // Добавление нового груза
+    addCargoForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      const name = document.getElementById("cargoName").value.trim();
+      const origin = document.getElementById("cargoOrigin").value;
+      const destination = document.getElementById("cargoDestination").value;
+      const departureDate = document.getElementById("departureDate").value;
+
+      if (!name || !origin || !destination || !departureDate) {
+        alert("Заполните все поля!");
+        return;
+      }
+
+      const newCargo = {
+        id: `CARGO${(cargoList.length + 1).toString().padStart(3, "0")}`,
+        name,
+        status: "Ожидает отправки",
+        origin,
+        destination,
+        departureDate
+      };
+
+      cargoList.push(newCargo);
+      renderCargoList(statusFilter.value);
+      addCargoForm.reset();
+    });
+
+    // Фильтрация
+    statusFilter.addEventListener("change", function () {
+      renderCargoList(this.value);	
+    });
+
+    // Инициализация
+    renderCargoList();
+  </script>
+</body>
+</html>
